@@ -3,5 +3,24 @@ const pruebaUser = (req, res) => {
         message: "Mensaje enviado desde controllers/user.js"
     });
 }
-module.exports = { pruebaUser }
+
+// Registro de usuarios
+const register = (req, res) => {
+    // Recoger datos de la peticion
+
+    // Comprobar que llegan bien
+
+    // Control de usuarios duplicados
+
+    // Cifrar la contraseña
+
+    // Guardar usuario en la bbdd
+
+    // Devolver resultado
+    return res.status(200).json({
+        message: "Accion de registro de usuario"
+    })
+}
+
+module.exports = { pruebaUser, register }
 
