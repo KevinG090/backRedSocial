@@ -161,14 +161,14 @@ const list = (req, res) => {
     let itemsPerPage = 3;
 
     User.find().sort("_id").paginate(page, itemsPerPage, (error, users, total) => {
-        if(error ||!users){
+        if (error || !users) {
             return res.status(404).send({
                 status: "error",
                 message: "No hay usuarios disponibles",
                 error
             });
         }
-        
+
         // Devolver el resultado
         return res.status(200).send({
             status: "success",
@@ -176,9 +176,77 @@ const list = (req, res) => {
             itemsPerPage,
             total,
             users,
-            pages: Math.ceil(total/itemsPerPage)
+            pages: Math.ceil(total / itemsPerPage)
         })
     })
+
+
+}
+
+const update = (req, res) => {
+    // Recoger los datos del usuario (token-authorization)
+    let userIdentity = req.user;
+    let userToUpdate = req.body;
+
+    // Eliminar datos sobrantes
+    delete userIdentity.iat;
+    delete userIdentity.exp;
+    delete userIdentity.rol;
+    delete userIdentity.imagen;
+
+    // Comprobar si el usuario ya existe (email,nick)
+    // Control de usuarios duplicados
+    User.find({
+        $or: [
+            { nick: userToUpdate.nick.toLowerCase() },
+            { email: userToUpdate.email.toLowerCase() }
+        ]
+    }).exec(async (error, users) => {
+        if (error) {
+            return res.status(500).json({
+                status: "error",
+                message: "Error en la consulta de datos"
+            });
+        }
+
+        let userIsset = false;
+        users.forEach(user => {
+            if (user && user._id != userIdentity.id) userIsset = true;
+        })
+
+        if (userIsset) {
+            return res.status(200).send({
+                status: "success",
+                message: "El usuario ya EXISTE"
+            });
+        }
+
+        // Cifrar la contraseña
+        if (userToUpdate.password) {
+            let pwd = await bcrypt.hash(userToUpdate.password, 10);
+            userToUpdate.password = pwd;
+        }
+        // buscar y actualizar
+        User.findByIdAndUpdate(userIdentity.id, userToUpdate, { new: true }, (error, userUpdate) => {
+            if (error || !userUpdate){
+                return res.status(500).send({
+                    status: "error",
+                    message: "Error al actualizar datos",
+                    error
+                });
+            }
+            
+            return res.status(200).send({
+                status: "success",
+                message: "Actualizacion de datos exitosa",
+                user: userToUpdate
+            });
+        })
+
+
+    });
+
+
 
 
 }
@@ -188,6 +256,7 @@ module.exports = {
     register,
     login,
     profile,
-    list
+    list,
+    update
 }
 
