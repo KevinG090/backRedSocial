@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt")
 const User = require("../models/user");
 const jwt = require("../services/jwt");
+const mongoosePagination = require("mongoose-pagination");
 
 
 const pruebaUser = (req, res) => {
@@ -96,7 +97,7 @@ const login = (req, res) => {
             // Comprobar su contraseña (la escrita con la bbdd cifrada)
             let pwd = bcrypt.compareSync(params.password, user.password)
 
-            if (!pwd){
+            if (!pwd) {
                 return res.status(400).send({
                     status: "error",
                     message: "No te has identificado correctamente"
@@ -116,9 +117,9 @@ const login = (req, res) => {
                 status: "success",
                 message: "Accion de login correcta",
                 user: {
-                    id:user._id,
-                    name:user.name,
-                    nick:user.nick
+                    id: user._id,
+                    name: user.name,
+                    nick: user.nick
                 },
                 token
             })
@@ -126,9 +127,67 @@ const login = (req, res) => {
 
 }
 
+const profile = (req, res) => {
+    //Recoger params del id por la url
+    const id = req.params.id;
+
+    // Consulta para sacar los datos del usuario
+    User.findById(id)
+        .select({ password: 0, role: 0 })
+        .exec((error, userProfile) => {
+            if (error || !userProfile) {
+                return res.status(404).send({
+                    status: "error",
+                    message: "Usuario no existe o hay un error"
+                });
+            }
+            // devolver resultado
+            return res.status(200).send({
+                status: "success",
+                message: "perfil de manera exitosa",
+                user: userProfile
+            })
+        })
+}
+
+const list = (req, res) => {
+    // Controlar la paginacion
+    let page = 1;
+
+    if (req.params.page) page = req.params.page;
+    page = parseInt(page);
+
+    // Consulta con mongoose paginate
+    let itemsPerPage = 3;
+
+    User.find().sort("_id").paginate(page, itemsPerPage, (error, users, total) => {
+        if(error ||!users){
+            return res.status(404).send({
+                status: "error",
+                message: "No hay usuarios disponibles",
+                error
+            });
+        }
+        
+        // Devolver el resultado
+        return res.status(200).send({
+            status: "success",
+            page,
+            itemsPerPage,
+            total,
+            users,
+            pages: Math.ceil(total/itemsPerPage)
+        })
+    })
+
+
+}
+
 module.exports = {
     pruebaUser,
     register,
-    login
+    login,
+    profile,
+    list
 }
 
