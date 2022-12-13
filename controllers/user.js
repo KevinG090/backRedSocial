@@ -1,10 +1,12 @@
 const bcrypt = require("bcrypt")
 const User = require("../models/user");
+const jwt = require("../services/jwt");
 
 
 const pruebaUser = (req, res) => {
     return res.status(200).send({
-        message: "Mensaje enviado desde controllers/user.js"
+        message: "Mensaje enviado desde controllers/user.js",
+        usuario: req.user
     })
 };
 
@@ -66,15 +68,67 @@ const register = (req, res) => {
                 user: userStored
             });
         })
-
-
-
-
     });
-
-
-
 };
 
-module.exports = { pruebaUser, register }
+const login = (req, res) => {
+    //Recoger params
+    let params = req.body;
+
+    if (!params.email || !params.password) {
+        return res.status(400).send({
+            status: "error",
+            message: "Faltan datos por enviar"
+        });
+    }
+
+    // Buscar bbdd si existe
+    User.findOne({ email: params.email })
+        // .select({ "password": 0 }) //No devuelve la pwd
+        .exec((error, user) => {
+            if (error || !user) {
+                return res.status(404).send({
+                    status: "error",
+                    message: "No existe el usuario"
+                });
+            }
+
+            // Comprobar su contraseña (la escrita con la bbdd cifrada)
+            let pwd = bcrypt.compareSync(params.password, user.password)
+
+            if (!pwd){
+                return res.status(400).send({
+                    status: "error",
+                    message: "No te has identificado correctamente"
+                });
+            }
+
+            // Devolver token
+            const token = jwt.createToken(user);
+
+
+
+            // Eliminar pws del objeto
+
+            // Devolver datos de usuario
+
+            return res.status(200).send({
+                status: "success",
+                message: "Accion de login correcta",
+                user: {
+                    id:user._id,
+                    name:user.name,
+                    nick:user.nick
+                },
+                token
+            })
+        })
+
+}
+
+module.exports = {
+    pruebaUser,
+    register,
+    login
+}
 

@@ -3,10 +3,12 @@ const router = express.Router()
 
 const UseController = require("../controllers/user.js")
 
-// Definir rutas
+const check = require("../middlewares/auth")
 
-router.get("/prueba-usuario", UseController.pruebaUser)
+// Definir rutas
+router.get("/prueba-usuario", check.auth, UseController.pruebaUser)
 router.post("/register", UseController.register)
+router.post("/login", UseController.login)
 
 
 module.exports = router
