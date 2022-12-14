@@ -2,6 +2,8 @@ const bcrypt = require("bcrypt")
 const User = require("../models/user");
 const jwt = require("../services/jwt");
 const mongoosePagination = require("mongoose-pagination");
+const fs = require("fs")
+const path = require("path")
 
 
 const pruebaUser = (req, res) => {
@@ -186,6 +188,7 @@ const list = (req, res) => {
 const update = (req, res) => {
     // Recoger los datos del usuario (token-authorization)
     let userIdentity = req.user;
+    // Recoger los datos del usuario modificado
     let userToUpdate = req.body;
 
     // Eliminar datos sobrantes
@@ -226,29 +229,98 @@ const update = (req, res) => {
             let pwd = await bcrypt.hash(userToUpdate.password, 10);
             userToUpdate.password = pwd;
         }
-        // buscar y actualizar
-        User.findByIdAndUpdate(userIdentity.id, userToUpdate, { new: true }, (error, userUpdate) => {
-            if (error || !userUpdate){
+        // Buscar y actualizar
+        try {
+            let userUpdate = await User.findByIdAndUpdate(userIdentity.id, userToUpdate, { new: true });
+            if (!userUpdate) {
                 return res.status(500).send({
                     status: "error",
-                    message: "Error al actualizar datos",
-                    error
+                    message: "Error al actualizar",
                 });
             }
-            
             return res.status(200).send({
                 status: "success",
                 message: "Actualizacion de datos exitosa",
                 user: userToUpdate
             });
-        })
 
+        } catch (error) {
+            return res.status(500).send({
+                status: "error",
+                message: "Error al actualizar datos",
+            });
+        }
 
+        /*--OPCION DE BUSCAR Y ACTUALIZAR CON CALLBACK--*/
+        // User.findByIdAndUpdate(userIdentity.id, userToUpdate, { new: true }, (error, userUpdate) => {
+        //     if (error || !userUpdate){return res.status(500).send({status: "error",message: "Error al actualizar datos",error});}
+        //     return res.status(200).send({status: "success",message: "Actualizacion de datos exitosa",user: userToUpdate});
+        // })
     });
+}
+
+const upload = (req, res) => {
+
+    // Recoger fichero de imagen y comprobar que existe
+    if (!req.file) { return res.status(404).send({ status: "error", message: "Peticion no incluye la imagen" }); };
+
+    // Conseguir el nombre del archivo
+    let image = req.file.originalname;
+
+    // Sacar la extension del archivo
+    const imageSplit = image.split("\.");
+    const extension = imageSplit[1]
+
+    // Comprovar extension
+    if (extension != "png" && extension != "jpg" && extension != "jpeg" && extension != "gif") {
+        // Hallar la direccion del archivo
+        const filePath = req.file.path;
+
+        // borrar archivo subido ("fs")
+        const fileDeselete = fs.unlinkSync(filePath);
+        return res.status(404).send({ status: "error", message: "Extension del fichero invalida" });
+    }
+
+    // Si si es correcta guardar img en bbdd
+    User.findByIdAndUpdate(req.user.id, { image: req.file.filename }, { new: true }, (error, userUpdate) => {
+        if (error || !userUpdate || !image) { return res.status(500).send({ status: "error", message: "Error al actuaizar imagen" }); };
+
+        // Devolver respuesta
+        return res.status(200).send({
+            status: "success",
+            user: userUpdate,
+            file: req.file
+        })
+    })
 
 
+}
 
+const avatar = (req, res) => {
+    // Sacar el parametro de la url
+    const file = req.params.file;
 
+    // Montar el path real de la imagen
+    const filepath = "./uploads/avatars/" + file;
+
+    // Comprobar que existe ("fs")
+    fs.stat(filepath, (error,exist) => {
+        if (!exist) return res.status(404).send({ status: "error", message: "No existe la imagen" });
+
+        // Devolver un file
+        return res.sendFile(path.resolve(filepath))
+
+        // return res.status(200).send({
+        //     status: "success",
+        //     exist
+        // })
+    })
+
+    // Devolver un file
+    // return res.status(200).send({
+    //     status:"success",
+    //     message:"Avatar exitoso"
+    // })
 }
 
 module.exports = {
@@ -257,6 +329,8 @@ module.exports = {
     login,
     profile,
     list,
-    update
+    update,
+    upload,
+    avatar
 }
 
