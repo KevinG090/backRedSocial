@@ -11,6 +11,7 @@ router.get("/prueba-follow", FollowController.pruebaFollow)
 router.post("/save", check.auth, FollowController.save)
 
 // Accion de borrar un follow (accion de dejar de seguir)
+router.delete("/unfollow/:id", check.auth, FollowController.unfollow)
 
 // Accion listado de usuarios q estoy siguiendo
 
