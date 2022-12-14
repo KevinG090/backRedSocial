@@ -42,6 +42,6 @@ exports.auth = (req, res, next) => {
     }
 
 
-    // Pasar a ejecucion de accion
+    // Pasar a la siguiente ejecucion de accion
     next();
 }

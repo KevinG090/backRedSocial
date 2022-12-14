@@ -1,5 +1,7 @@
-const bcrypt = require("bcrypt")
+// Importar modelo
 const User = require("../models/user");
+// Importar dependencias y servicios
+const bcrypt = require("bcrypt")
 const jwt = require("../services/jwt");
 const mongoosePagination = require("mongoose-pagination");
 const fs = require("fs")
@@ -13,7 +15,6 @@ const pruebaUser = (req, res) => {
     })
 };
 
-// Registro de usuarios
 const register = (req, res) => {
     // Recoger datos de la peticion
     let params = req.body;
@@ -310,17 +311,8 @@ const avatar = (req, res) => {
         // Devolver un file
         return res.sendFile(path.resolve(filepath))
 
-        // return res.status(200).send({
-        //     status: "success",
-        //     exist
-        // })
     })
 
-    // Devolver un file
-    // return res.status(200).send({
-    //     status:"success",
-    //     message:"Avatar exitoso"
-    // })
 }
 
 module.exports = {
