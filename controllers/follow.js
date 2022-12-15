@@ -1,5 +1,8 @@
 const Follow = require("../models/follow")
-const User = require("../models/user")
+const User = require("../models/user");
+const { use } = require("../routes/user");
+
+const mongoosePaginate = require("mongoose-pagination")
 
 const pruebaFollow = (req, res) => {
     return res.status(200).send({
@@ -7,7 +10,7 @@ const pruebaFollow = (req, res) => {
     });
 }
 
-const save = (req, res) => {
+const save = (req, res) => { // Seguir
 
     // Sacar los datos por el body
     const params = req.body;
@@ -35,30 +38,69 @@ const save = (req, res) => {
     })
 }
 
-const unfollow = (req, res) => {
+const unfollow = (req, res) => { // Dejar de seguir
     // Recoger la id del usuario identificado
     const userId = req.user.id;
     // Recoger la id de la url
     const followId = req.params.id;
 
-    // find de las coincidencias y hacer remove
-    Follow.find({
-        "user": userId,
-        "followed": followId
+    // Encontrar de las coincidencias y hacer remove
+    Follow.find({ "user": userId, "followed": followId })
+        .remove((error, followDelete) => {
+            if (error || !followDelete) { return res.status(500).send({ status: "error", message: "No se ha podido eliminar el follow" }); };
 
-    }).remove((error, followDelete) => {
-        if (error || !followDelete) { return res.status(500).send({ status: "error", message: "No se ha podido eliminar el follow" }); };
+            return res.status(200).send({
+                status: "success",
+                message: "Follow eliminado correctamente",
+                followDelete
+            })
+        });
+}
 
-        return res.status(200).send({
-            status: "success",
-            message:"Follow eliminado correctamente",
-            followDelete
+const following = (req, res) => { // Lista de los que sigo
+    // Sacar id del identificado
+    let userId = req.user.id;
+    let page = 1;
+
+    // Comprobar si me llega el id por parametro en url
+    if (req.params.id) userId = req.params.id;
+
+    // Comprobar si me llega la pagina
+    if (req.params.page) page = req.params.page;
+
+    // Usuarios por pagina
+    const itemsPerPage = 5
+
+    // Find a follow, popular datos de los usuarios y paginar ocn mongoose paginate 
+    // pupulate sirve para mostrar los objetos gracias a la ID
+    Follow.find({ user: userId })
+        .populate("user followed","name -_id")
+        .exec((error, follows) => {
+            if (error || !follows) { return res.status(500).send({ status: "error", message: "No se han encontrado follows" }); };
+            return res.status(200).send({
+                status: "success",
+                message: "Listado de usuarios que sigo",
+                follows
+            })
         })
-    });
+
+    // Sacar un array de los usuarios que me siguen como usuario identificado
+
+
+
+}
+
+const followers = (req, res) => {// Lista de seguidores
+    return res.status(200).send({
+        status: "success",
+        message: "Listado de usuarios que me siguen"
+    })
 }
 
 module.exports = {
     pruebaFollow,
     save,
-    unfollow
+    unfollow,
+    following,
+    followers
 }
