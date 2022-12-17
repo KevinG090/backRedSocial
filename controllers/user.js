@@ -3,6 +3,7 @@ const User = require("../models/user");
 // Importar dependencias y servicios
 const bcrypt = require("bcrypt")
 const jwt = require("../services/jwt");
+const followService = require("../services/followUserIds")
 const mongoosePagination = require("mongoose-pagination");
 const fs = require("fs")
 const path = require("path")
@@ -18,6 +19,7 @@ const pruebaUser = (req, res) => {
 const register = (req, res) => {
     // Recoger datos de la peticion
     let params = req.body;
+    console.log(params)
 
     // Comprobar que llegan bien
     if (!params.name || !params.nick || !params.email || !params.password) {
@@ -27,13 +29,11 @@ const register = (req, res) => {
         });
     }
 
-
-
     // Control de usuarios duplicados
     User.find({
         $or: [
-            { nick: params.nick.toLowerCase() },
-            { email: params.email.toLowerCase() }
+            { nick: params.nick },
+            { email: params.email }
         ]
     }).exec(async (error, users) => {
         if (error) {
@@ -42,6 +42,7 @@ const register = (req, res) => {
                 message: "Error en la consulta de datos"
             });
         }
+        console.log(users.length, users)
         if (users && users.length >= 1) {
             return res.status(200).send({
                 status: "success",
@@ -68,7 +69,7 @@ const register = (req, res) => {
             // Devolver resultado
             return res.status(200).json({
                 status: "success",
-                message: "Usuario registrado correctamente",
+                message: "Usuario registrado correctamentee",
                 user: userStored
             });
         })
@@ -137,18 +138,23 @@ const profile = (req, res) => {
     // Consulta para sacar los datos del usuario
     User.findById(id)
         .select({ password: 0, role: 0 })
-        .exec((error, userProfile) => {
+        .exec(async (error, userProfile) => {
             if (error || !userProfile) {
                 return res.status(404).send({
                     status: "error",
                     message: "Usuario no existe o hay un error"
                 });
             }
+            // Info de seguimiento
+            const followInfo = await followService.followThisUser(req.user.id, id)
+
             // devolver resultado
             return res.status(200).send({
                 status: "success",
                 message: "perfil de manera exitosa",
-                user: userProfile
+                user: userProfile,
+                following: followInfo.following,
+                follower: followInfo.follower
             })
         })
 }
@@ -163,7 +169,7 @@ const list = (req, res) => {
     // Consulta con mongoose paginate
     let itemsPerPage = 3;
 
-    User.find().sort("_id").paginate(page, itemsPerPage, (error, users, total) => {
+    User.find().sort("_id").paginate(page, itemsPerPage, async (error, users, total) => {
         if (error || !users) {
             return res.status(404).send({
                 status: "error",
@@ -171,6 +177,8 @@ const list = (req, res) => {
                 error
             });
         }
+        //  Sacar un array de los usuarios que me siguen como usuario identificado
+        let followUserIds = await followService.followUserIds(req.user.id);
 
         // Devolver el resultado
         return res.status(200).send({
@@ -179,7 +187,9 @@ const list = (req, res) => {
             itemsPerPage,
             total,
             users,
-            pages: Math.ceil(total / itemsPerPage)
+            pages: Math.ceil(total / itemsPerPage),
+            user_following: followUserIds.following,
+            user_follow_me: followUserIds.followers
         })
     })
 
@@ -305,7 +315,7 @@ const avatar = (req, res) => {
     const filepath = "./uploads/avatars/" + file;
 
     // Comprobar que existe ("fs")
-    fs.stat(filepath, (error,exist) => {
+    fs.stat(filepath, (error, exist) => {
         if (!exist) return res.status(404).send({ status: "error", message: "No existe la imagen" });
 
         // Devolver un file
