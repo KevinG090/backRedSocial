@@ -76,10 +76,10 @@ const following = (req, res) => { // Lista de los que sigo
     // pupulate sirve para mostrar los objetos gracias a la ID
     Follow.find({ user: userId })
         .populate("user followed", "name -_id")
-        .paginate(page, itemsPerPage, async(error, follows, total) => { //paginar los follows (mongoose)
+        .paginate(page, itemsPerPage, async (error, follows, total) => { //paginar los follows (mongoose)
             if (error || !follows) { return res.status(500).send({ status: "error", message: "No se han encontrado follows" }); };
             //  Sacar un array de los usuarios que me siguen como usuario identificado
-            let followUserIds =await followService.followUserIds(userId);
+            let followUserIds = await followService.followUserIds(userId);
             return res.status(200).send({
                 status: "success",
                 name: req.user.name,
@@ -99,10 +99,39 @@ const following = (req, res) => { // Lista de los que sigo
 }
 
 const followers = (req, res) => {// Lista de seguidores
-    return res.status(200).send({
-        status: "success",
-        message: "Listado de usuarios que me siguen"
-    })
+
+    // Sacar id del identificado
+    let userId = req.user.id;
+    let page = 1;
+
+    // Comprobar si me llega el id por parametro en url
+    if (req.params.id) userId = req.params.id;
+
+    // Comprobar si me llega la pagina
+    if (req.params.page) page = req.params.page;
+
+    // Usuarios por pagina
+    const itemsPerPage = 5;
+
+    Follow.find({ followed: userId })
+        .populate("user", "name")
+        .paginate(page, itemsPerPage, async (error, follows, total) => { //paginar los follows (mongoose)
+            if (error || !follows) { return res.status(500).send({ status: "error", message: "No se han encontrado follows" }); };
+            //  Sacar un array de los usuarios que me siguen como usuario identificado
+            let followUserIds = await followService.followUserIds(userId);
+            return res.status(200).send({
+                status: "success",
+                name: req.user.name,
+                page,
+                totalFollows: total,
+                totalPages: Math.ceil(total / itemsPerPage),
+                message: "Listado de usuarios que me siguen",
+                user_following: followUserIds.following,
+                user_follow_me: followUserIds.followers,
+                follows
+            })
+        })
+
 }
 
 module.exports = {
