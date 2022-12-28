@@ -1,5 +1,5 @@
 {
-  "name": "api-rest-res-social",
+  "name": "api-rest-red-social",
   "version": "1.0.0",
   "description": "Api-Rest con Node, Mongo, Express, JWT para una red social",
   "main": "index.js",
