@@ -3,9 +3,9 @@ const { Schema, model } = require("mongoose")
 const PublicationSchema = Schema({
     user: {
         type: Schema.ObjectId,
-        ref:"User"
+        ref: "User"
     },
-    text:{
+    text: {
         typeof: String,
         require: true
     },
@@ -14,6 +14,6 @@ const PublicationSchema = Schema({
         type: Date,
         default: Date.now
     }
-})
+});
 
-module.exports = model("Publication",PublicationSchema,"publications")
+module.exports = model("Publication", PublicationSchema, "publications");

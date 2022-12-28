@@ -1,4 +1,4 @@
-const Publication = require("../models/publication")
+// const Publication = require("../models/publication")
 
 const pruebaPublication = (req, res) =>{
     return res.status(200).send({
